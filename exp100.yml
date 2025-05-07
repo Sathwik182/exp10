@@ -1,0 +1,58 @@
+# Azure DevOps pipeline YAML file
+
+trigger:
+  branches:
+    include:
+      - main  # Trigger the pipeline for the main branch
+
+pool:
+  vmImage: 'ubuntu-latest'  # Use the latest Ubuntu image for the build agent
+
+variables:
+  buildConfiguration: 'Release'  # Set the build configuration to Release
+
+stages:
+- stage: Build
+  displayName: 'Build Stage'
+  jobs:
+  - job: BuildJob
+    displayName: 'Build Job'
+    steps:
+    - task: UseDotNet@2
+      inputs:
+        packageType: 'sdk'
+        version: '6.x'
+        installationPath: $(Agent.ToolsDirectory)/dotnet
+      
+    - script: |
+        echo Installing dependencies...
+        dotnet restore
+      displayName: 'Restore Dependencies'
+
+    - script: |
+        echo Building project...
+        dotnet build --configuration $(buildConfiguration)
+      displayName: 'Build Project'
+
+    - script: |
+        echo Running tests...
+        dotnet test --configuration $(buildConfiguration)
+      displayName: 'Run Tests'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+- stage: Deploy
+  displayName: 'Deploy Stage'
+  dependsOn: Build
+  jobs:
+  - job: DeployJob
+    displayName: 'Deploy Job'
+    steps:
+    - script: |
+        echo Deploying the application...
+        # Add your deployment scripts/commands here
+      displayName: 'Deploy Application'
